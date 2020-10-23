@@ -40,13 +40,13 @@ def read_displacements(base):
         A tuple of 3-tuples containing the x, y and z displacements of each node.
         Note that while tuple offsets start at 0, node numbers start at 1!
     """
-    with open(base+'.dat') as dat:
+    with open(base + ".dat") as dat:
         lines = [ln.strip() for ln in dat.readlines()]
     # Get the index from the beginning of the “energy” lines.
-    start = [n for n, ln in enumerate(lines) if 'energy' in ln][0] + 2
+    start = [n for n, ln in enumerate(lines) if "energy" in ln][0] + 2
     # Read the original displacements.
     end = start - 3
-    start = [n for n, ln in enumerate(lines) if 'displacements' in ln][0] + 2
+    start = [n for n, ln in enumerate(lines) if "displacements" in ln][0] + 2
     disp = [tuple(float(j) for j in ln.split()[1:]) for ln in lines[start:end]]
     # Return the original displacements.
     return tuple(disp)
@@ -68,16 +68,17 @@ def read_expansion(base):
 
     Note that node and element numbers in calculix start with 1.
     """
-    with open(base+'.12d') as dat:
+    with open(base + ".12d") as dat:
         lines = [ln.strip() for ln in dat.readlines()]
-    indices = [n for n, ln in enumerate(lines) if ln.startswith('ELEMENT')]
+    indices = [n for n, ln in enumerate(lines) if ln.startswith("ELEMENT")]
     rv = []
     for i in indices:
         d = types.SimpleNamespace()
         d.element = int(lines[i].split()[1])
-        d.orig = tuple(int(i) for i in lines[i+1].split())
-        d.new = (tuple(int(i) for i in lines[i+3].split()) +
-                 tuple(int(i) for i in lines[i+4].split()))
+        d.orig = tuple(int(i) for i in lines[i + 1].split())
+        d.new = tuple(int(i) for i in lines[i + 3].split()) + tuple(
+            int(i) for i in lines[i + 4].split()
+        )
         rv.append(d)
     return tuple(rv)
 
@@ -105,15 +106,28 @@ def new_displacements(orig, expansion):
     # This maps the expanded element node numbers to the original node
     # numbers.
     mapping = {
-        0: 0, 1: 1,  2: 2,  3: 0,  4: 1,  5: 2,  6: 3, 7: 4,
-        8: 5, 9: 3, 10: 4, 11: 5, 12: 0, 13: 1, 14: 2
+        0: 0,
+        1: 1,
+        2: 2,
+        3: 0,
+        4: 1,
+        5: 2,
+        6: 3,
+        7: 4,
+        8: 5,
+        9: 3,
+        10: 4,
+        11: 5,
+        12: 0,
+        13: 1,
+        14: 2,
     }
     newdisp = {}
     for e in expansion:
         org, new = e.orig, e.new
         for x, n in enumerate(new):
             if n not in newdisp:
-                newdisp[n] = orig[org[mapping[x]]-1]
+                newdisp[n] = orig[org[mapping[x]] - 1]
     idx = sorted(list(newdisp.keys()))
     return tuple((i, newdisp[i]) for i in idx)
 
@@ -122,19 +136,19 @@ def splice(base, new):
     """
     Splice the new displacements into the .frd file.
     """
-    with open(base+'.frd') as dat:
+    with open(base + ".frd") as dat:
         lines = [ln for ln in dat.readlines()]
-    idx = [n for n, ln in enumerate(lines) if 'DISP' in ln][0] + 5
+    idx = [n for n, ln in enumerate(lines) if "DISP" in ln][0] + 5
     # Check:
-    if not lines[idx].strip().startswith('-3'):
-        raise ValueError(f'wrong offset: {idx}')
+    if not lines[idx].strip().startswith("-3"):
+        raise ValueError(f"wrong offset: {idx}")
     splice = []
     for node, (dx, dy, dz) in new:
-        splice.append(f' -1{node:>10d}{dx: 11.5E}{dy: 11.5E}{dz: 11.5E}\n')
+        splice.append(f" -1{node:>10d}{dx: 11.5E}{dy: 11.5E}{dz: 11.5E}\n")
     before = lines[:idx]
     after = lines[idx:]
     total = before + splice + after
-    with open(base+'-post.frd', 'wt') as newdat:
+    with open(base + "-post.frd", "wt") as newdat:
         newdat.writelines(total)
 
 
@@ -155,5 +169,5 @@ def main(argv):
     splice(sys.argv[1], new)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(sys.argv[1:])
